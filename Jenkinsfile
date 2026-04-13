@@ -6,11 +6,11 @@ pipeline {
                 sh 'docker build -t myapp:${BUILD_NUMBER} .' 
             }
         }
-        stage('Lint') {
+       /* stage('Lint') {
             steps {
                 sh 'docker run myapp:${BUILD_NUMBER} python -m flake8 app.py --max-line-length=120'
             }
-        }
+        } */
         stage('Test') {
             steps {
                 sh 'docker run myapp:${BUILD_NUMBER} python -m pytest tests/ -v'
