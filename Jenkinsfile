@@ -3,7 +3,7 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                sh 'docker build -t myapp:${BUILD_NUMBER}' . 
+                sh 'docker build -t myapp:${BUILD_NUMBER} .' 
             }
         }
         stage('Lint') {
