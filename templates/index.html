@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MD Editor</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial; display: flex; flex-direction: column; height: 100vh; }
+        header { padding: 10px 20px; background: #2c2c2c; color: white; font-size: 18px; }
+        #toolbar { display: flex; gap: 12px; padding: 8px 15px; background: #f0f0f0; border-bottom: 1px solid #ddd; flex-wrap: wrap; align-items: center; }
+        .group { display: flex; gap: 4px; align-items: center; padding-right: 12px; border-right: 1px solid #ccc; }
+        .group:last-child { border-right: none; }
+        .group-label { font-size: 11px; color: #999; margin-right: 4px; }
+        #toolbar button { padding: 4px 10px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; background: white; font-size: 13px; }
+        #toolbar button:hover { background: #ddd; }
+        .container { display: flex; flex: 1; overflow: hidden; }
+        .pane { flex: 1; display: flex; flex-direction: column; }
+        .pane-title { padding: 8px 15px; background: #f9f9f9; font-size: 13px; color: #666; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
+        .pane-title button { padding: 3px 10px; font-size: 12px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; background: white; }
+        #editor { flex: 1; padding: 20px; outline: none; font-size: 16px; line-height: 1.8; overflow-y: auto; border-right: 2px solid #ddd; }
+        #editor h1 { font-size: 2em; margin: 10px 0; }
+        #editor h2 { font-size: 1.5em; margin: 8px 0; }
+        #editor h3 { font-size: 1.2em; margin: 6px 0; }
+        #editor blockquote { border-left: 3px solid #ccc; padding-left: 10px; color: #666; margin: 5px 0; }
+        #editor code { background: #f0f0f0; padding: 2px 5px; border-radius: 3px; font-family: monospace; }
+        #editor pre { background: #f0f0f0; padding: 10px; border-radius: 5px; font-family: monospace; }
+        #editor hr { border: none; border-top: 2px solid #ccc; margin: 10px 0; }
+        #preview { flex: 1; padding: 20px; font-family: monospace; font-size: 14px; white-space: pre-wrap; overflow-y: auto; background: #f9f9f9; color: #333; line-height: 1.8; }
+    </style>
+</head>
+<body>
+    <header>✏️ MD Editor</header>
+    <div id="toolbar">
+        <div class="group">
+            <span class="group-label">Текст</span>
+            <button onmousedown="event.preventDefault(); fmt('bold')"><b>B</b></button>
+            <button onmousedown="event.preventDefault(); fmt('italic')"><i>I</i></button>
+            <button onmousedown="event.preventDefault(); fmt('strike')"><s>S</s></button>
+            <button onmousedown="event.preventDefault(); fmt('code')">&lt;/&gt;</button>
+        </div>
+        <div class="group">
+            <span class="group-label">Заголовки</span>
+            <button onmousedown="event.preventDefault(); fmt('h1')">H1</button>
+            <button onmousedown="event.preventDefault(); fmt('h2')">H2</button>
+            <button onmousedown="event.preventDefault(); fmt('h3')">H3</button>
+        </div>
+        <div class="group">
+            <span class="group-label">Списки</span>
+            <button onmousedown="event.preventDefault(); fmt('ul')">• Список</button>
+            <button onmousedown="event.preventDefault(); fmt('ol')">1. Нумерованный</button>
+        </div>
+        <div class="group">
+            <span class="group-label">Прочее</span>
+            <button onmousedown="event.preventDefault(); fmt('quote')">❝ Цитата</button>
+            <button onmousedown="event.preventDefault(); fmt('codeblock')">⬛ Блок кода</button>
+            <button onmousedown="event.preventDefault(); fmt('hr')">— Линия</button>
+            <button onmousedown="event.preventDefault(); fmt('link')">🔗 Ссылка</button>
+        </div>
+    </div>
+    <div class="container">
+        <div class="pane">
+            <div class="pane-title">Редактор</div>
+            <div id="editor" contenteditable="true">Начни писать здесь...</div>
+        </div>
+        <div class="pane">
+            <div class="pane-title">
+                Markdown разметка
+                <button onclick="copyMd()">Скопировать</button>
+            </div>
+            <div id="preview"></div>
+        </div>
+    </div>
+
+    <script>
+        const editor = document.getElementById('editor');
+        const preview = document.getElementById('preview');
+
+        function fmt(type) {
+            const selection = window.getSelection();
+            const text = selection ? selection.toString() : '';
+
+            if (type === 'bold') document.execCommand('bold');
+            else if (type === 'italic') document.execCommand('italic');
+            else if (type === 'strike') document.execCommand('strikeThrough');
+            else if (type === 'h1') document.execCommand('formatBlock', false, 'H1');
+            else if (type === 'h2') document.execCommand('formatBlock', false, 'H2');
+            else if (type === 'h3') document.execCommand('formatBlock', false, 'H3');
+            else if (type === 'ul') document.execCommand('insertUnorderedList');
+            else if (type === 'ol') document.execCommand('insertOrderedList');
+            else if (type === 'quote') document.execCommand('formatBlock', false, 'BLOCKQUOTE');
+            else if (type === 'hr') document.execCommand('insertHorizontalRule');
+            else if (type === 'code') {
+                const code = document.createElement('code');
+                code.textContent = text;
+                const range = selection.getRangeAt(0);
+                range.deleteContents();
+                range.insertNode(code);
+            }
+            else if (type === 'codeblock') {
+                const pre = document.createElement('pre');
+                pre.textContent = text;
+                const range = selection.getRangeAt(0);
+                range.deleteContents();
+                range.insertNode(pre);
+            }
+            else if (type === 'link') {
+                const url = prompt('Введи URL:');
+                if (url) document.execCommand('createLink', false, url);
+            }
+
+            updatePreview();
+        }
+
+        function htmlToMd(html) {
+            let md = html;
+            md = md.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n');
+            md = md.replace(/<h2[^>]*>(.*?)<\/h2>/gi, '## $1\n');
+            md = md.replace(/<h3[^>]*>(.*?)<\/h3>/gi, '### $1\n');
+            md = md.replace(/<blockquote[^>]*>(.*?)<\/blockquote>/gi, '> $1\n');
+            md = md.replace(/<pre[^>]*>(.*?)<\/pre>/gi, '```\n$1\n```\n');
+            md = md.replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`');
+            md = md.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
+            md = md.replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**');
+            md = md.replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*');
+            md = md.replace(/<i[^>]*>(.*?)<\/i>/gi, '*$1*');
+            md = md.replace(/<s[^>]*>(.*?)<\/s>/gi, '~~$1~~');
+            md = md.replace(/<strike[^>]*>(.*?)<\/strike>/gi, '~~$1~~');
+            md = md.replace(/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
+            md = md.replace(/<hr[^>]*>/gi, '\n---\n');
+            md = md.replace(/<li[^>]*>(.*?)<\/li>/gi, '- $1\n');
+            md = md.replace(/<ul[^>]*>|<\/ul>/gi, '');
+            md = md.replace(/<ol[^>]*>|<\/ol>/gi, '');
+            md = md.replace(/<br\s*\/?>/gi, '\n');
+            md = md.replace(/<div>(.*?)<\/div>/gi, '$1\n');
+            md = md.replace(/<[^>]+>/g, '');
+            md = md.replace(/&nbsp;/g, ' ');
+            md = md.replace(/\n{3,}/g, '\n\n');
+            return md.trim();
+        }
+
+        function updatePreview() {
+            preview.textContent = htmlToMd(editor.innerHTML);
+        }
+
+        function copyMd() {
+            navigator.clipboard.writeText(preview.textContent);
+            alert('Скопировано!');
+        }
+
+        editor.addEventListener('input', updatePreview);
+        editor.addEventListener('keyup', updatePreview);
+    </script>
+</body>
+</html>
